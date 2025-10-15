@@ -27,6 +27,6 @@ class Item extends Model
 
     public function outfits()
     {
-        return $this->belongsToMany(Outfit::class);
+        return $this->belongsToMany(Outfit::class, 'outfit_item', 'item_id', 'outfit_id');
     }
 }

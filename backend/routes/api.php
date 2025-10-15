@@ -17,7 +17,7 @@ use App\Http\Controllers\AuthController;
 |
 */
 
-// 🔐 Autentifikacija korisnika (register, login, logout)
+// 🔐 Autentifikacija korisnika
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
@@ -27,8 +27,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// 🔒 Zaštićene rute — dostupne samo autentifikovanim korisnicima sa rolom admin ili user
+// 🔒 Zaštićene CRUD rute za item i outfit resurse
 Route::middleware(['auth:sanctum', 'role:admin,user'])->group(function () {
+    // Resource rute za Item
     Route::apiResource('items', ItemController::class);
+
+    // Resource rute za Outfit
     Route::apiResource('outfits', OutfitController::class);
+
+    // Ako želiš da dodaš rute za paginaciju, filtriranje ili specijalne akcije:
+    // Route::get('items/search', [ItemController::class, 'search']);
+    // Route::get('outfits/recommend', [OutfitController::class, 'recommend']);
 });

@@ -3,80 +3,78 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Outfit;
 use App\Models\Item;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class OutfitController extends Controller
 {
-    // GET /api/outfits
+    // Prikazuje sve outfite ulogovanog korisnika
     public function index()
     {
-        // vraća sve outfite sa pripadajućim itemima
-        return response()->json(Outfit::with('items')->get());
+        $outfits = Outfit::where('user_id', Auth::id())
+            ->with('items') // Učitava povezane iteme
+            ->get();
+
+        return response()->json($outfits, 200);
     }
 
-    // POST /api/outfits
+    // Kreira novi outfit
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'item_ids' => 'array', // očekujemo niz item ID-jeva
+            'item_ids' => 'nullable|array', // lista item ID-jeva za outfit
             'item_ids.*' => 'exists:items,id'
         ]);
 
-        $outfit = Outfit::create([
-            'user_id' => $validated['user_id'],
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-        ]);
+        $validated['user_id'] = Auth::id();
+        $outfit = Outfit::create($validated);
 
-        // ako postoje item_ids, poveži ih u pivot tabeli
         if (!empty($validated['item_ids'])) {
-            $outfit->items()->attach($validated['item_ids']);
+            $outfit->items()->sync($validated['item_ids']);
         }
 
         return response()->json($outfit->load('items'), 201);
     }
 
-    // GET /api/outfits/{id}
+    // Prikazuje jedan outfit
     public function show($id)
     {
-        $outfit = Outfit::with('items')->findOrFail($id);
-        return response()->json($outfit);
+        $outfit = Outfit::where('user_id', Auth::id())->with('items')->findOrFail($id);
+        return response()->json($outfit, 200);
     }
 
-    // PUT /api/outfits/{id}
+    // Ažurira outfit
     public function update(Request $request, $id)
     {
-        $outfit = Outfit::findOrFail($id);
+        $outfit = Outfit::where('user_id', Auth::id())->findOrFail($id);
 
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
+            'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'item_ids' => 'array',
+            'item_ids' => 'nullable|array',
             'item_ids.*' => 'exists:items,id'
         ]);
 
         $outfit->update($validated);
 
         if (isset($validated['item_ids'])) {
-            // sinhronizuje pivot relaciju
             $outfit->items()->sync($validated['item_ids']);
         }
 
-        return response()->json($outfit->load('items'));
+        return response()->json($outfit->load('items'), 200);
     }
 
-    // DELETE /api/outfits/{id}
+    // Briše outfit
     public function destroy($id)
     {
-        $outfit = Outfit::findOrFail($id);
-        $outfit->items()->detach(); // briše veze iz pivot tabele
+        $outfit = Outfit::where('user_id', Auth::id())->findOrFail($id);
+        $outfit->items()->detach();
         $outfit->delete();
 
-        return response()->json(['message' => 'Outfit deleted successfully']);
+        return response()->json(['message' => 'Outfit deleted successfully'], 200);
     }
 }

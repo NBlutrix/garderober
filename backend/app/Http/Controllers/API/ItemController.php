@@ -23,7 +23,7 @@ class ItemController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
             'season' => 'nullable|string',
-            'warmth' => 'nullable|string',
+            'warmth' => 'nullable|integer',
             'waterproof' => 'nullable|boolean',
             'color' => 'nullable|string',
             'image_url' => 'nullable|string',

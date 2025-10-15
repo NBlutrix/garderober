@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\ItemController;
+use App\Http\Controllers\API\OutfitController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,3 +23,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // ✅ Naša resource ruta za ItemController
 Route::apiResource('items', ItemController::class);
+// Resource ruta za OutfitController
+Route::apiResource('outfits', OutfitController::class);
+
+

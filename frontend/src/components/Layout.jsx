@@ -12,14 +12,14 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <nav className="bg-gray-800 p-4 text-white flex justify-between items-center">
-        <div className="flex space-x-4">
-          <Link to="/" className="hover:underline">Home</Link>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <nav className="bg-gray-800 p-4 text-white flex justify-between items-center shadow-md">
+        <div className="flex space-x-6">
+          <Link to="/" className="hover:text-gray-300 font-semibold">Home</Link>
           {token && (
             <>
-              <Link to="/items" className="hover:underline">Items</Link>
-              <Link to="/outfits" className="hover:underline">Outfits</Link>
+              <Link to="/items" className="hover:text-gray-300 font-semibold">Items</Link>
+              <Link to="/outfits" className="hover:text-gray-300 font-semibold">Outfits</Link>
             </>
           )}
         </div>
@@ -27,20 +27,20 @@ const Layout = ({ children }) => {
           {token ? (
             <button 
               onClick={handleLogout} 
-              className="bg-red-500 px-3 py-1 rounded hover:bg-red-600 transition"
+              className="bg-red-500 px-4 py-1 rounded hover:bg-red-600 transition"
             >
               Logout
             </button>
           ) : (
             <>
-              <Link to="/login" className="hover:underline">Login</Link>
-              <Link to="/register" className="hover:underline">Register</Link>
+              <Link to="/login" className="hover:text-gray-300">Login</Link>
+              <Link to="/register" className="hover:text-gray-300">Register</Link>
             </>
           )}
         </div>
       </nav>
 
-      <main className="flex-1 p-6 bg-gray-100">
+      <main className="flex-1 p-6">
         {children}
       </main>
     </div>

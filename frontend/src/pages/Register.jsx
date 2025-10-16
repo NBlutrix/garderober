@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
-import Layout from '../components/Layout';
 
 const Register = () => {
   const { register } = useAuth();
@@ -32,10 +31,10 @@ const Register = () => {
   };
 
   return (
-    <Layout>
-      <h2 className="text-2xl mb-4">Register</h2>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-      <form onSubmit={handleSubmit} className="max-w-sm">
+    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-semibold mb-6 text-center">Register</h2>
+      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
         <InputField
           label="Name"
           type="text"
@@ -64,11 +63,11 @@ const Register = () => {
           onChange={(e) => setPasswordConfirm(e.target.value)}
           placeholder="Confirm your password"
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" fullWidth disabled={loading}>
           {loading ? 'Registering...' : 'Register'}
         </Button>
       </form>
-    </Layout>
+    </div>
   );
 };
 

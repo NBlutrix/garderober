@@ -1,36 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/api';
 import { useAuth } from '../hooks/useAuth';
-import Layout from '../components/Layout';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 
 const Items = () => {
-  const { token, user } = useAuth();
+  const { token,} = useAuth();
   const [items, setItems] = useState([]);
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Fetch items
   useEffect(() => {
+    if (!token) return;
+
     const fetchItems = async () => {
       try {
-        const res = await api.get('/items', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
         setItems(res.data);
       } catch (err) {
         console.error(err);
         setError('Failed to fetch items.');
       }
     };
-
-    if (token) fetchItems();
+    fetchItems();
   }, [token]);
 
-  // Add item
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!name.trim() || !type.trim()) return setError('All fields required.');
@@ -39,7 +35,7 @@ const Items = () => {
     try {
       const res = await api.post(
         '/items',
-        { name, type }, // <--- backend očekuje 'type'
+        { name, type },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setItems([...items, res.data]);
@@ -54,12 +50,9 @@ const Items = () => {
     }
   };
 
-  // Delete item
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/items/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/items/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setItems(items.filter((item) => item.id !== id));
     } catch (err) {
       console.error(err);
@@ -67,21 +60,13 @@ const Items = () => {
     }
   };
 
-  if (!user) {
-    return (
-      <Layout>
-        <p className="text-center text-gray-600">You must be logged in to view items.</p>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout>
-      <h2 className="text-2xl mb-4">Items</h2>
+    <div className="max-w-3xl mx-auto">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Items</h2>
 
-      {error && <p className="text-red-500 mb-2">{error}</p>}
+      {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      <form onSubmit={handleAddItem} className="max-w-sm mb-6">
+      <form onSubmit={handleAddItem} className="mb-6 space-y-4 bg-white p-6 rounded-lg shadow-md">
         <InputField
           label="Item Name"
           value={name}
@@ -99,18 +84,15 @@ const Items = () => {
         </Button>
       </form>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {items.length > 0 ? (
           items.map((item) => (
-            <li
-              key={item.id}
-              className="p-3 border rounded flex justify-between items-center"
-            >
+            <li key={item.id} className="p-4 bg-white rounded shadow flex justify-between items-center">
               <div>
                 <p className="font-semibold">{item.name}</p>
-                <p className="text-sm text-gray-500">{item.type}</p>
+                <p className="text-gray-500">{item.type}</p>
               </div>
-              <Button onClick={() => handleDelete(item.id)} className="bg-red-500">
+              <Button onClick={() => handleDelete(item.id)} className="bg-red-500 hover:bg-red-600">
                 Delete
               </Button>
             </li>
@@ -119,7 +101,7 @@ const Items = () => {
           <p className="text-gray-500">No items found.</p>
         )}
       </ul>
-    </Layout>
+    </div>
   );
 };
 

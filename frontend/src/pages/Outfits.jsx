@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/api';
 import { useAuth } from '../hooks/useAuth';
-import Layout from '../components/Layout';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 
 const Outfits = () => {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [outfits, setOutfits] = useState([]);
   const [items, setItems] = useState([]);
   const [title, setTitle] = useState('');
@@ -18,9 +17,7 @@ const Outfits = () => {
 
     const fetchOutfits = async () => {
       try {
-        const res = await api.get('/outfits', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/outfits', { headers: { Authorization: `Bearer ${token}` } });
         setOutfits(res.data);
       } catch (err) {
         console.error(err);
@@ -30,9 +27,7 @@ const Outfits = () => {
 
     const fetchItems = async () => {
       try {
-        const res = await api.get('/items', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
         setItems(res.data);
       } catch (err) {
         console.error(err);
@@ -42,19 +37,14 @@ const Outfits = () => {
 
     fetchOutfits();
     fetchItems();
-  }, [token]); // samo token je dependency
+  }, [token]);
 
   const handleCreateOutfit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || selectedItems.length === 0)
-      return setError('Please enter a title and select at least one item.');
+    if (!title.trim() || selectedItems.length === 0) return setError('Please enter a title and select items.');
 
     try {
-      const res = await api.post(
-        '/outfits',
-        { title, item_ids: selectedItems },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/outfits', { title, item_ids: selectedItems }, { headers: { Authorization: `Bearer ${token}` } });
       setOutfits([...outfits, res.data]);
       setTitle('');
       setSelectedItems([]);
@@ -67,9 +57,7 @@ const Outfits = () => {
 
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/outfits/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/outfits/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setOutfits(outfits.filter((o) => o.id !== id));
     } catch (err) {
       console.error(err);
@@ -79,29 +67,17 @@ const Outfits = () => {
 
   const toggleItemSelection = (itemId) => {
     setSelectedItems((prev) =>
-      prev.includes(itemId)
-        ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId]
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
     );
   };
 
-  if (!user) {
-    return (
-      <Layout>
-        <p className="text-center text-gray-600">
-          You must be logged in to view outfits.
-        </p>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout>
-      <h2 className="text-2xl mb-4">Outfits</h2>
+    <div className="max-w-3xl mx-auto">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Outfits</h2>
 
-      {error && <p className="text-red-500 mb-2">{error}</p>}
+      {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      <form onSubmit={handleCreateOutfit} className="max-w-md mb-6">
+      <form onSubmit={handleCreateOutfit} className="mb-6 p-6 bg-white rounded shadow-md space-y-4">
         <InputField
           label="Outfit Title"
           value={title}
@@ -109,10 +85,10 @@ const Outfits = () => {
           placeholder="Enter outfit title"
         />
 
-        <p className="mb-2 text-gray-700">Select Items:</p>
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <p className="text-gray-700 font-semibold">Select Items:</p>
+        <div className="grid grid-cols-2 gap-2">
           {items.map((item) => (
-            <label key={item.id} className="flex items-center space-x-2">
+            <label key={item.id} className="flex items-center space-x-2 bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200">
               <input
                 type="checkbox"
                 checked={selectedItems.includes(item.id)}
@@ -126,23 +102,15 @@ const Outfits = () => {
         <Button type="submit">Create Outfit</Button>
       </form>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {outfits.length > 0 ? (
           outfits.map((outfit) => (
-            <li
-              key={outfit.id}
-              className="p-3 border rounded flex justify-between items-center"
-            >
+            <li key={outfit.id} className="p-4 bg-white rounded shadow flex justify-between items-center">
               <div>
                 <p className="font-semibold">{outfit.title}</p>
-                <p className="text-sm text-gray-500">
-                  {outfit.items && outfit.items.map((i) => i.name).join(', ')}
-                </p>
+                <p className="text-gray-500">{outfit.items?.map((i) => i.name).join(', ')}</p>
               </div>
-              <Button
-                onClick={() => handleDelete(outfit.id)}
-                className="bg-red-500"
-              >
+              <Button onClick={() => handleDelete(outfit.id)} className="bg-red-500 hover:bg-red-600">
                 Delete
               </Button>
             </li>
@@ -151,7 +119,7 @@ const Outfits = () => {
           <p className="text-gray-500">No outfits found.</p>
         )}
       </ul>
-    </Layout>
+    </div>
   );
 };
 

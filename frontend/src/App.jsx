@@ -23,24 +23,12 @@ const App = () => {
           <Route path="/" element={<Home />} />
 
           {/* Zaštićene rute */}
-          <Route
-            path="/items"
-            element={token ? <Items /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/outfits"
-            element={token ? <Outfits /> : <Navigate to="/login" />}
-          />
+          <Route path="/items" element={token ? <Items /> : <Navigate to="/login" />} />
+          <Route path="/outfits" element={token ? <Outfits /> : <Navigate to="/login" />} />
 
           {/* Javne rute */}
-          <Route
-            path="/login"
-            element={!token ? <Login /> : <Navigate to="/items" />}
-          />
-          <Route
-            path="/register"
-            element={!token ? <Register /> : <Navigate to="/items" />}
-          />
+          <Route path="/login" element={!token ? <Login /> : <Navigate to="/items" />} />
+          <Route path="/register" element={!token ? <Register /> : <Navigate to="/items" />} />
 
           {/* Fallback ruta */}
           <Route path="*" element={<NotFound />} />

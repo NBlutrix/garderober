@@ -18,37 +18,39 @@ const Outfits = () => {
   const [total, setTotal] = useState(0);
   const [perPage] = useState(10);
 
-  const fetchOutfits = async (page = 1) => {
-    if (!token) return;
-    try {
-      const res = await api.get(`/outfits?page=${page}&per_page=${perPage}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOutfits(res.data.data);
-      setCurrentPage(res.data.current_page);
-      setLastPage(res.data.last_page);
-      setTotal(res.data.total);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch outfits.');
-    }
-  };
-
-  const fetchItems = async () => {
-    if (!token) return;
-    try {
-      const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
-      setItems(res.data);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch items.');
-    }
-  };
-
   useEffect(() => {
+    if (!token) return;
+
+    const fetchOutfits = async (page = 1) => {
+      try {
+        const res = await api.get(`/outfits?page=${page}&per_page=${perPage}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOutfits(res.data.data);
+        setCurrentPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch outfits.');
+        setOutfits([]);
+      }
+    };
+
+    const fetchItems = async () => {
+      try {
+        const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
+        setItems(Array.isArray(res.data.data) ? res.data.data : res.data);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch items.');
+        setItems([]);
+      }
+    };
+
     fetchItems();
     fetchOutfits();
-  }, [token]);
+  }, [token, perPage]);
 
   const handleCreateOutfit = async (e) => {
     e.preventDefault();
@@ -66,7 +68,14 @@ const Outfits = () => {
       setTitle('');
       setSelectedItems([]);
       setError('');
-      fetchOutfits(1); // osveži prvu stranicu nakon kreiranja
+      // Refresh first page after creation
+      const res = await api.get(`/outfits?page=1&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOutfits(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to create outfit.');
@@ -78,7 +87,14 @@ const Outfits = () => {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/outfits/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      fetchOutfits(currentPage);
+      // Refresh current page after deletion
+      const res = await api.get(`/outfits?page=${currentPage}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOutfits(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to delete outfit.');
@@ -89,6 +105,22 @@ const Outfits = () => {
     setSelectedItems((prev) =>
       prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
     );
+  };
+
+  const goToPage = async (page) => {
+    if (page < 1 || page > lastPage) return;
+    try {
+      const res = await api.get(`/outfits?page=${page}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOutfits(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch outfits.');
+    }
   };
 
   return (
@@ -153,7 +185,7 @@ const Outfits = () => {
       {/* PAGINATION */}
       {outfits.length > 0 && (
         <div className="flex justify-between items-center mt-6">
-          <Button disabled={currentPage === 1} onClick={() => fetchOutfits(currentPage - 1)}>
+          <Button disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>
             Previous
           </Button>
 
@@ -161,7 +193,7 @@ const Outfits = () => {
             Page {currentPage} of {lastPage} ({total} total)
           </p>
 
-          <Button disabled={currentPage === lastPage} onClick={() => fetchOutfits(currentPage + 1)}>
+          <Button disabled={currentPage === lastPage} onClick={() => goToPage(currentPage + 1)}>
             Next
           </Button>
         </div>

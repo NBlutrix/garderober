@@ -11,11 +11,16 @@ use Illuminate\Support\Facades\Storage;
 class ItemController extends Controller
 {
     // Prikazuje sve iteme ulogovanog korisnika
-    public function index()
-    {
-        $items = Item::where('user_id', Auth::id())->get();
-        return response()->json($items, 200);
-    }
+    public function index(Request $request)
+{
+    // Koliko itema po stranici (default 10)
+    $perPage = $request->get('per_page', 10);
+
+    // Paginacija samo za ulogovanog korisnika
+    $items = Item::where('user_id', Auth::id())->paginate($perPage);
+
+    return response()->json($items, 200);
+}
 
     // Kreira novi item
     public function store(Request $request)

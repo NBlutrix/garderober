@@ -6,7 +6,13 @@ import Button from '../components/Button';
 
 const Items = () => {
   const { token } = useAuth();
+
   const [items, setItems] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [perPage] = useState(5);
+
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [season, setSeason] = useState('winter');
@@ -18,19 +24,24 @@ const Items = () => {
   useEffect(() => {
     if (!token) return;
 
-    const fetchItems = async () => {
+    const fetchItems = async (page = 1) => {
       try {
-        const res = await api.get('/items', {
+        const res = await api.get(`/items?page=${page}&per_page=${perPage}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setItems(res.data);
+
+        setItems(res.data.data);
+        setCurrentPage(res.data.current_page);
+        setLastPage(res.data.last_page);
+        setTotal(res.data.total);
       } catch (err) {
         console.error(err);
         setError('Failed to fetch items.');
       }
     };
+
     fetchItems();
-  }, [token]);
+  }, [token, perPage]);
 
   const handleAddItem = async (e) => {
     e.preventDefault();
@@ -47,13 +58,22 @@ const Items = () => {
     if (image) formData.append('image', image);
 
     try {
-      const res = await api.post('/items', formData, {
+      await api.post('/items', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
-      setItems([...items, res.data]);
+
+      // Refresh first page after adding
+      const res = await api.get(`/items?page=1&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
+
       setName('');
       setType('');
       setSeason('winter');
@@ -73,10 +93,33 @@ const Items = () => {
       await api.delete(`/items/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setItems(items.filter((item) => item.id !== id));
+
+      // Refresh current page after deletion
+      const res = await api.get(`/items?page=${currentPage}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to delete item.');
+    }
+  };
+
+  const handlePageChange = async (page) => {
+    if (page < 1 || page > lastPage) return;
+
+    try {
+      const res = await api.get(`/items?page=${page}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems(res.data.data);
+      setCurrentPage(res.data.current_page);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to change page.');
     }
   };
 
@@ -86,6 +129,7 @@ const Items = () => {
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
+      {/* ADD ITEM FORM */}
       <form
         onSubmit={handleAddItem}
         className="mb-6 space-y-4 bg-white p-6 rounded-lg shadow-md"
@@ -134,6 +178,7 @@ const Items = () => {
         </Button>
       </form>
 
+      {/* ITEMS LIST */}
       <ul className="space-y-3">
         {items.length > 0 ? (
           items.map((item) => (
@@ -168,6 +213,29 @@ const Items = () => {
           <p className="text-gray-500">No items found.</p>
         )}
       </ul>
+
+      {/* PAGINATION */}
+      {items.length > 0 && (
+        <div className="flex justify-between items-center mt-6">
+          <Button
+            disabled={currentPage === 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            Previous
+          </Button>
+
+          <p className="text-gray-700">
+            Page {currentPage} of {lastPage} ({total} total)
+          </p>
+
+          <Button
+            disabled={currentPage === lastPage}
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -20,6 +20,7 @@ const Login = () => {
 
     try {
       await login(email, password);
+      window.location.reload(); 
       navigate('/items');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.');

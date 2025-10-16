@@ -9,6 +9,7 @@ const Layout = ({ children }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+    window.location.reload(); 
   };
 
   return (

@@ -9,7 +9,7 @@ const Items = () => {
   const { token, user } = useAuth();
   const [items, setItems] = useState([]);
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -33,22 +33,22 @@ const Items = () => {
   // Add item
   const handleAddItem = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !category.trim()) return setError('All fields required.');
+    if (!name.trim() || !type.trim()) return setError('All fields required.');
 
     setLoading(true);
     try {
       const res = await api.post(
         '/items',
-        { name, category },
+        { name, type }, // <--- backend očekuje 'type'
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setItems([...items, res.data]);
       setName('');
-      setCategory('');
+      setType('');
       setError('');
     } catch (err) {
       console.error(err);
-      setError('Failed to add item.');
+      setError(err.response?.data?.message || 'Failed to add item.');
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const Items = () => {
       setItems(items.filter((item) => item.id !== id));
     } catch (err) {
       console.error(err);
-      setError('Failed to delete item.');
+      setError(err.response?.data?.message || 'Failed to delete item.');
     }
   };
 
@@ -89,10 +89,10 @@ const Items = () => {
           placeholder="Enter item name"
         />
         <InputField
-          label="Category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="Enter category"
+          label="Type"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          placeholder="Enter item type"
         />
         <Button type="submit" disabled={loading}>
           {loading ? 'Adding...' : 'Add Item'}
@@ -108,7 +108,7 @@ const Items = () => {
             >
               <div>
                 <p className="font-semibold">{item.name}</p>
-                <p className="text-sm text-gray-500">{item.category}</p>
+                <p className="text-sm text-gray-500">{item.type}</p>
               </div>
               <Button onClick={() => handleDelete(item.id)} className="bg-red-500">
                 Delete

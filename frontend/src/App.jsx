@@ -10,7 +10,11 @@ import NotFound from './pages/NotFound';
 import { useAuth } from './hooks/useAuth';
 
 const App = () => {
-  const { token } = useAuth(); // proverava da li je korisnik ulogovan
+  const { token, loading } = useAuth();
+
+  if (loading) {
+    return <div className="text-center mt-20 text-xl">Loading...</div>;
+  }
 
   return (
     <Router>

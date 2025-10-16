@@ -12,6 +12,7 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,8 +22,8 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register(name, email, password);
-      navigate('/items'); // Preusmeravanje nakon uspešne registracije
+      await register(name, email, password, passwordConfirm);
+      navigate('/items');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Check your input.');
     } finally {
@@ -55,6 +56,13 @@ const Register = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
+        />
+        <InputField
+          label="Confirm Password"
+          type="password"
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+          placeholder="Confirm your password"
         />
         <Button type="submit" disabled={loading}>
           {loading ? 'Registering...' : 'Register'}

@@ -21,7 +21,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/items'); // Preusmeravanje nakon uspešnog logina
+      navigate('/items');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.');
     } finally {

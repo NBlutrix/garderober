@@ -9,59 +9,59 @@ const Outfits = () => {
   const { token, user } = useAuth();
   const [outfits, setOutfits] = useState([]);
   const [items, setItems] = useState([]);
-  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (token) {
-      fetchOutfits();
-      fetchItems();
-    }
-  }, [token]);
+    if (!token) return;
 
-  const fetchOutfits = async () => {
-    try {
-      const res = await api.get('/outfits', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOutfits(res.data);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch outfits.');
-    }
-  };
+    const fetchOutfits = async () => {
+      try {
+        const res = await api.get('/outfits', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOutfits(res.data);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch outfits.');
+      }
+    };
 
-  const fetchItems = async () => {
-    try {
-      const res = await api.get('/items', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setItems(res.data);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch items.');
-    }
-  };
+    const fetchItems = async () => {
+      try {
+        const res = await api.get('/items', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setItems(res.data);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch items.');
+      }
+    };
+
+    fetchOutfits();
+    fetchItems();
+  }, [token]); // samo token je dependency
 
   const handleCreateOutfit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || selectedItems.length === 0)
-      return setError('Please enter a name and select at least one item.');
+    if (!title.trim() || selectedItems.length === 0)
+      return setError('Please enter a title and select at least one item.');
 
     try {
       const res = await api.post(
         '/outfits',
-        { name, items: selectedItems },
+        { title, item_ids: selectedItems },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setOutfits([...outfits, res.data]);
-      setName('');
+      setTitle('');
       setSelectedItems([]);
       setError('');
     } catch (err) {
       console.error(err);
-      setError('Failed to create outfit.');
+      setError(err.response?.data?.message || 'Failed to create outfit.');
     }
   };
 
@@ -73,7 +73,7 @@ const Outfits = () => {
       setOutfits(outfits.filter((o) => o.id !== id));
     } catch (err) {
       console.error(err);
-      setError('Failed to delete outfit.');
+      setError(err.response?.data?.message || 'Failed to delete outfit.');
     }
   };
 
@@ -88,7 +88,9 @@ const Outfits = () => {
   if (!user) {
     return (
       <Layout>
-        <p className="text-center text-gray-600">You must be logged in to view outfits.</p>
+        <p className="text-center text-gray-600">
+          You must be logged in to view outfits.
+        </p>
       </Layout>
     );
   }
@@ -101,10 +103,10 @@ const Outfits = () => {
 
       <form onSubmit={handleCreateOutfit} className="max-w-md mb-6">
         <InputField
-          label="Outfit Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter outfit name"
+          label="Outfit Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter outfit title"
         />
 
         <p className="mb-2 text-gray-700">Select Items:</p>
@@ -132,12 +134,15 @@ const Outfits = () => {
               className="p-3 border rounded flex justify-between items-center"
             >
               <div>
-                <p className="font-semibold">{outfit.name}</p>
+                <p className="font-semibold">{outfit.title}</p>
                 <p className="text-sm text-gray-500">
                   {outfit.items && outfit.items.map((i) => i.name).join(', ')}
                 </p>
               </div>
-              <Button onClick={() => handleDelete(outfit.id)} className="bg-red-500">
+              <Button
+                onClick={() => handleDelete(outfit.id)}
+                className="bg-red-500"
+              >
                 Delete
               </Button>
             </li>

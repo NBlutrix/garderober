@@ -11,54 +11,74 @@ const Outfits = () => {
   const [title, setTitle] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [perPage] = useState(10);
+
+  const fetchOutfits = async (page = 1) => {
+    if (!token) return;
+    try {
+      const res = await api.get(`/outfits?page=${page}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOutfits(res.data.data);
+      setCurrentPage(res.data.current_page);
+      setLastPage(res.data.last_page);
+      setTotal(res.data.total);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch outfits.');
+    }
+  };
+
+  const fetchItems = async () => {
+    if (!token) return;
+    try {
+      const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
+      setItems(res.data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch items.');
+    }
+  };
 
   useEffect(() => {
-    if (!token) return;
-
-    const fetchOutfits = async () => {
-      try {
-        const res = await api.get('/outfits', { headers: { Authorization: `Bearer ${token}` } });
-        setOutfits(res.data);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch outfits.');
-      }
-    };
-
-    const fetchItems = async () => {
-      try {
-        const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
-        setItems(res.data);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch items.');
-      }
-    };
-
-    fetchOutfits();
     fetchItems();
+    fetchOutfits();
   }, [token]);
 
   const handleCreateOutfit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || selectedItems.length === 0) return setError('Please enter a title and select items.');
+    if (!title.trim() || selectedItems.length === 0) {
+      return setError('Please enter a title and select items.');
+    }
 
+    setLoading(true);
     try {
-      const res = await api.post('/outfits', { title, item_ids: selectedItems }, { headers: { Authorization: `Bearer ${token}` } });
-      setOutfits([...outfits, res.data]);
+      await api.post(
+        '/outfits',
+        { title, item_ids: selectedItems },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setTitle('');
       setSelectedItems([]);
       setError('');
+      fetchOutfits(1); // osveži prvu stranicu nakon kreiranja
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to create outfit.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await api.delete(`/outfits/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      setOutfits(outfits.filter((o) => o.id !== id));
+      fetchOutfits(currentPage);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to delete outfit.');
@@ -77,6 +97,7 @@ const Outfits = () => {
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
+      {/* CREATE OUTFIT FORM */}
       <form onSubmit={handleCreateOutfit} className="mb-6 p-6 bg-white rounded shadow-md space-y-4">
         <InputField
           label="Outfit Title"
@@ -88,7 +109,10 @@ const Outfits = () => {
         <p className="text-gray-700 font-semibold">Select Items:</p>
         <div className="grid grid-cols-2 gap-2">
           {items.map((item) => (
-            <label key={item.id} className="flex items-center space-x-2 bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200">
+            <label
+              key={item.id}
+              className="flex items-center space-x-2 bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200"
+            >
               <input
                 type="checkbox"
                 checked={selectedItems.includes(item.id)}
@@ -99,13 +123,19 @@ const Outfits = () => {
           ))}
         </div>
 
-        <Button type="submit">Create Outfit</Button>
+        <Button type="submit" fullWidth disabled={loading}>
+          {loading ? 'Creating...' : 'Create Outfit'}
+        </Button>
       </form>
 
+      {/* OUTFITS LIST */}
       <ul className="space-y-3">
         {outfits.length > 0 ? (
           outfits.map((outfit) => (
-            <li key={outfit.id} className="p-4 bg-white rounded shadow flex justify-between items-center">
+            <li
+              key={outfit.id}
+              className="p-4 bg-white rounded shadow flex justify-between items-center"
+            >
               <div>
                 <p className="font-semibold">{outfit.title}</p>
                 <p className="text-gray-500">{outfit.items?.map((i) => i.name).join(', ')}</p>
@@ -119,6 +149,23 @@ const Outfits = () => {
           <p className="text-gray-500">No outfits found.</p>
         )}
       </ul>
+
+      {/* PAGINATION */}
+      {outfits.length > 0 && (
+        <div className="flex justify-between items-center mt-6">
+          <Button disabled={currentPage === 1} onClick={() => fetchOutfits(currentPage - 1)}>
+            Previous
+          </Button>
+
+          <p className="text-gray-700">
+            Page {currentPage} of {lastPage} ({total} total)
+          </p>
+
+          <Button disabled={currentPage === lastPage} onClick={() => fetchOutfits(currentPage + 1)}>
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

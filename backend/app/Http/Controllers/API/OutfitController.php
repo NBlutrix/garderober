@@ -10,11 +10,14 @@ use Illuminate\Support\Facades\Auth;
 class OutfitController extends Controller
 {
     // Prikazuje sve outfite ulogovanog korisnika
-    public function index()
+    public function index(Request $request)
     {
+        // Uzmi broj po stranici iz query parametra ili default na 10
+        $perPage = $request->query('per_page', 10);
+
         $outfits = Outfit::where('user_id', Auth::id())
             ->with('items')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json($outfits, 200);
     }

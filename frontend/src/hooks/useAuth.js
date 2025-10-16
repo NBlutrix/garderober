@@ -6,20 +6,25 @@ export const useAuth = () => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch user on token change
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
-        try {
-          const res = await api.get('/user', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          setUser(res.data);
-        } catch (err) {
-          console.error('Token invalid or expired', err);
-          logout();
-        }
+      if (!token) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      try {
+        const res = await api.get('/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser(res.data);
+      } catch (err) {
+        console.error('Token invalid or expired', err);
+        logout();
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchUser();
@@ -43,7 +48,7 @@ export const useAuth = () => {
         name,
         email,
         password,
-        password_confirmation,
+        password_confirmation
       });
       localStorage.setItem('token', res.data.token);
       setToken(res.data.token);
@@ -56,8 +61,8 @@ export const useAuth = () => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    setUser(null);
     setToken(null);
+    setUser(null);
   };
 
   return { user, token, loading, login, register, logout };

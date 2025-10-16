@@ -12,25 +12,17 @@ import { useAuth } from './hooks/useAuth';
 const App = () => {
   const { token, loading } = useAuth();
 
-  if (loading) {
-    return <div className="text-center mt-20 text-xl">Loading...</div>;
-  }
+  if (loading) return <div className="text-center mt-20 text-xl">Loading...</div>;
 
   return (
     <Router>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
-
-          {/* Zaštićene rute */}
           <Route path="/items" element={token ? <Items /> : <Navigate to="/login" />} />
           <Route path="/outfits" element={token ? <Outfits /> : <Navigate to="/login" />} />
-
-          {/* Javne rute */}
           <Route path="/login" element={!token ? <Login /> : <Navigate to="/items" />} />
           <Route path="/register" element={!token ? <Register /> : <Navigate to="/items" />} />
-
-          {/* Fallback ruta */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

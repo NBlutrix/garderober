@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
@@ -22,15 +23,17 @@ class ItemController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            'season' => 'nullable|string',
-            'warmth' => 'nullable|integer',
-            'waterproof' => 'nullable|boolean',
-            'color' => 'nullable|string',
-            'image_url' => 'nullable|string',
+            'season' => 'required|in:winter,autumn,spring,summer',
+            'color' => 'required|string|max:50',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $validated['user_id'] = Auth::id();
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('items', 'public');
+            $validated['image_url'] = $path;
+        }
 
+        $validated['user_id'] = Auth::id();
         $item = Item::create($validated);
 
         return response()->json($item, 201);
@@ -43,14 +46,27 @@ class ItemController extends Controller
         return response()->json($item, 200);
     }
 
-    // Ažurira postojeći item
+    // Ažurira item
     public function update(Request $request, $id)
     {
         $item = Item::where('user_id', Auth::id())->findOrFail($id);
 
-        $item->update($request->only([
-            'name', 'type', 'season', 'warmth', 'waterproof', 'color', 'image_url'
-        ]));
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'type' => 'sometimes|required|string|max:255',
+            'season' => 'sometimes|required|in:winter,autumn,spring,summer',
+            'color' => 'sometimes|required|string|max:50',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+            // Briše prethodnu sliku ako postoji
+            if ($item->image) Storage::disk('public')->delete($item->image);
+            $path = $request->file('image')->store('items', 'public');
+            $validated['image'] = $path;
+        }
+
+        $item->update($validated);
 
         return response()->json($item, 200);
     }
@@ -59,6 +75,7 @@ class ItemController extends Controller
     public function destroy($id)
     {
         $item = Item::where('user_id', Auth::id())->findOrFail($id);
+        if ($item->image) Storage::disk('public')->delete($item->image);
         $item->delete();
 
         return response()->json(['message' => 'Item deleted successfully'], 200);

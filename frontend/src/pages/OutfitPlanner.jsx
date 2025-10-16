@@ -13,16 +13,21 @@ const OutfitPlanner = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch weather
-  const fetchWeather = async () => {
-    try {
-      const res = await api.get(`/weather?city=${city}`);
-      setTemperature(res.data.main.temp);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch weather.');
-    }
-  };
+  // Fetch weather direktno u useEffect da uklonimo ESLint warning
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await api.get(`/weather?city=${city}`);
+        const temp = parseFloat(res.data.main.temp);
+        setTemperature(temp);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch weather.');
+      }
+    };
+
+    fetchWeather();
+  }, [city]); // dependency je samo city
 
   // Fetch suggested outfits
   const fetchSuggestedOutfits = async () => {
@@ -42,10 +47,6 @@ const OutfitPlanner = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchWeather();
-  }, [city]);
 
   useEffect(() => {
     if (temperature !== null && eventType) {
@@ -87,10 +88,7 @@ const OutfitPlanner = () => {
       <div className="space-y-4">
         {suggestedOutfits.length > 0 ? (
           suggestedOutfits.map((outfit) => (
-            <div
-              key={outfit.id}
-              className="border p-4 rounded shadow bg-white"
-            >
+            <div key={outfit.id} className="border p-4 rounded shadow bg-white">
               <h3 className="font-semibold text-lg mb-2">{outfit.title}</h3>
               {outfit.description && <p className="text-gray-600 mb-2">{outfit.description}</p>}
               {outfit.event_type && (
@@ -98,10 +96,7 @@ const OutfitPlanner = () => {
               )}
               <div className="flex flex-wrap gap-2">
                 {outfit.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border p-2 rounded shadow text-sm"
-                  >
+                  <div key={item.id} className="border p-2 rounded shadow text-sm">
                     <p className="font-semibold">{item.name}</p>
                     <p className="text-gray-500">{item.type}</p>
                   </div>

@@ -1,78 +1,124 @@
-import React, { useState } from 'react';
-import Card from '../components/Card';
-import Layout from '../components/Layout';
-import Button from '../components/Button';
+import React, { useEffect, useState } from 'react';
+import api from '../api/api';
 import { useAuth } from '../hooks/useAuth';
-import useFetch from '../hooks/useFetch';
+import Layout from '../components/Layout';
+import InputField from '../components/InputField';
+import Button from '../components/Button';
 
 const Items = () => {
-  const { token } = useAuth();
-  const { data: items, loading, error } = useFetch('http://127.0.0.1:8000/api/items', token);
+  const { token, user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [filterType, setFilterType] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  // Fetch items
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const res = await api.get('/items', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setItems(res.data);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch items.');
+      }
+    };
 
-  // Filtriranje po tipu
-  const filteredItems = filterType
-    ? items.filter(item => item.type.toLowerCase() === filterType.toLowerCase())
-    : items;
+    if (token) fetchItems();
+  }, [token]);
 
-  // Paginacija
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  // Add item
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !category.trim()) return setError('All fields required.');
 
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    setLoading(true);
+    try {
+      const res = await api.post(
+        '/items',
+        { name, category },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setItems([...items, res.data]);
+      setName('');
+      setCategory('');
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to add item.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrev = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+  // Delete item
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/items/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems(items.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error(err);
+      setError('Failed to delete item.');
+    }
   };
+
+  if (!user) {
+    return (
+      <Layout>
+        <p className="text-center text-gray-600">You must be logged in to view items.</p>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <h2 className="text-2xl mb-4">My Items</h2>
+      <h2 className="text-2xl mb-4">Items</h2>
 
-      <div className="mb-4">
-        <select
-          className="border rounded px-3 py-2"
-          value={filterType}
-          onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
-        >
-          <option value="">All Types</option>
-          <option value="shirt">Shirts</option>
-          <option value="pants">Pants</option>
-          <option value="shoes">Shoes</option>
-          <option value="jacket">Jackets</option>
-        </select>
-      </div>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
 
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+      <form onSubmit={handleAddItem} className="max-w-sm mb-6">
+        <InputField
+          label="Item Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter item name"
+        />
+        <InputField
+          label="Category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder="Enter category"
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Adding...' : 'Add Item'}
+        </Button>
+      </form>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {currentItems.map(item => (
-          <Card
-            key={item.id}
-            title={item.name}
-            subtitle={`${item.type} - ${item.season}`}
-            image={item.image_url}
-          >
-            <p>Color: {item.color}</p>
-            <p>Warmth: {item.warmth}</p>
-            <p>Waterproof: {item.waterproof ? 'Yes' : 'No'}</p>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex justify-between mt-4">
-        <Button onClick={handlePrev} disabled={currentPage === 1}>Prev</Button>
-        <p>Page {currentPage} of {totalPages}</p>
-        <Button onClick={handleNext} disabled={currentPage === totalPages}>Next</Button>
-      </div>
+      <ul className="space-y-2">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <li
+              key={item.id}
+              className="p-3 border rounded flex justify-between items-center"
+            >
+              <div>
+                <p className="font-semibold">{item.name}</p>
+                <p className="text-sm text-gray-500">{item.category}</p>
+              </div>
+              <Button onClick={() => handleDelete(item.id)} className="bg-red-500">
+                Delete
+              </Button>
+            </li>
+          ))
+        ) : (
+          <p className="text-gray-500">No items found.</p>
+        )}
+      </ul>
     </Layout>
   );
 };

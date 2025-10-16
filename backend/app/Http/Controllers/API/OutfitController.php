@@ -26,6 +26,7 @@ class OutfitController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'event_type' => 'nullable|string|max:255', // dodato
             'item_ids' => 'nullable|array', // lista item ID-jeva za outfit
             'item_ids.*' => 'exists:items,id'
         ]);
@@ -55,6 +56,7 @@ class OutfitController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
+            'event_type' => 'nullable|string|max:255', // dodato
             'item_ids' => 'nullable|array',
             'item_ids.*' => 'exists:items,id'
         ]);
@@ -76,5 +78,29 @@ class OutfitController extends Controller
         $outfit->delete();
 
         return response()->json(['message' => 'Outfit deleted successfully'], 200);
+    }
+
+    // Predlaže outfite na osnovu event_type i temperature
+    public function suggest(Request $request)
+    {
+        $eventType = $request->query('event_type');
+        $temperature = $request->query('temperature');
+
+        $query = Outfit::with('items')->where('user_id', Auth::id());
+
+        if ($eventType) {
+            $query->where('event_type', $eventType);
+        }
+
+        $outfits = $query->get()->filter(function ($outfit) use ($temperature) {
+            return $outfit->items->every(function ($item) use ($temperature) {
+                // Jednostavna logika za season i temperaturu
+                if ($item->season === 'summer' && $temperature >= 20) return true;
+                if ($item->season === 'winter' && $temperature < 20) return true;
+                return false;
+            });
+        });
+
+        return response()->json($outfits->values(), 200);
     }
 }

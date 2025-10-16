@@ -6,17 +6,6 @@ use App\Http\Controllers\API\ItemController;
 use App\Http\Controllers\API\OutfitController;
 use App\Http\Controllers\AuthController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Ovde registruješ sve API rute aplikacije.
-| Laravel ih automatski učitava preko RouteServiceProvider-a
-| i prefiksira sa /api.
-|
-*/
-
 // 🔐 Autentifikacija korisnika
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -35,7 +24,10 @@ Route::middleware(['auth:sanctum', 'role:admin,user'])->group(function () {
     // Resource rute za Outfit
     Route::apiResource('outfits', OutfitController::class);
 
-    // Ako želiš da dodaš rute za paginaciju, filtriranje ili specijalne akcije:
+    // Specijalna ruta za predlog outfita na osnovu event_type i temperature
+    Route::get('outfits/suggest', [OutfitController::class, 'suggest']);
+
+    // Primer dodatnih ruta za paginaciju/pretragu/filter
     // Route::get('items/search', [ItemController::class, 'search']);
-    // Route::get('outfits/recommend', [OutfitController::class, 'recommend']);
+    // Route::get('outfits/filter', [OutfitController::class, 'filter']);
 });

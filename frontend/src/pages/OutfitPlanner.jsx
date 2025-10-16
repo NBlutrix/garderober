@@ -1,89 +1,117 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import ItemCard from '../components/ItemCard'; // komponenta za prikaz itema
+import React, { useEffect, useState } from 'react';
+import api from '../api/api';
+import { useAuth } from '../hooks/useAuth';
+import InputField from '../components/InputField';
 import Button from '../components/Button';
 
 const OutfitPlanner = () => {
+  const { token } = useAuth();
   const [city, setCity] = useState('Belgrade');
-  const [eventType, setEventType] = useState('');
   const [temperature, setTemperature] = useState(null);
-  const [outfits, setOutfits] = useState([]);
+  const [eventType, setEventType] = useState('');
+  const [suggestedOutfits, setSuggestedOutfits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSuggest = async () => {
-    setError('');
-    setLoading(true);
-    setOutfits([]);
-
+  // Fetch weather
+  const fetchWeather = async () => {
     try {
-      // 1️⃣ Dohvati temperaturu sa Weather API-ja
-      const weatherRes = await axios.get(`/api/weather?city=${city}`);
-      const temp = weatherRes.data.main.temp;
-      setTemperature(temp);
-
-      // 2️⃣ Dohvati predloge outfita na osnovu temperature i event_type
-      const outfitsRes = await axios.get(
-        `/api/outfits/suggest?temperature=${temp}&event_type=${eventType}`,
-        { withCredentials: true } // ako koristiš sanctum
-      );
-
-      setOutfits(outfitsRes.data);
+      const res = await api.get(`/weather?city=${city}`);
+      setTemperature(res.data.main.temp);
     } catch (err) {
       console.error(err);
-      setError('Greška pri dohvatanju podataka.');
+      setError('Failed to fetch weather.');
+    }
+  };
+
+  // Fetch suggested outfits
+  const fetchSuggestedOutfits = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await api.get(
+        `/outfits/suggest?event_type=${eventType}&temperature=${temperature}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuggestedOutfits(res.data);
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch suggested outfits.');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchWeather();
+  }, [city]);
+
+  useEffect(() => {
+    if (temperature !== null && eventType) {
+      fetchSuggestedOutfits();
+    }
+    // eslint-disable-next-line
+  }, [temperature, eventType]);
+
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Outfit Planner</h1>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">Outfit Planner</h2>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
-        <input
-          type="text"
-          placeholder="Grad"
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      <div className="mb-6 space-y-4 bg-white p-6 rounded-lg shadow-md">
+        <InputField
+          label="City"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          className="border p-2 rounded w-full sm:w-1/3"
+          placeholder="Enter city"
         />
-        <input
-          type="text"
-          placeholder="Tip događaja (casual, formal...)"
+        <InputField
+          label="Event Type"
           value={eventType}
           onChange={(e) => setEventType(e.target.value)}
-          className="border p-2 rounded w-full sm:w-1/3"
+          placeholder="Enter event type (e.g., party, casual)"
         />
-        <Button onClick={handleSuggest} disabled={loading}>
-          {loading ? 'Predlažem...' : 'Predloži Outfit'}
+        <Button onClick={fetchSuggestedOutfits} disabled={loading}>
+          {loading ? 'Fetching...' : 'Get Outfit Suggestions'}
         </Button>
       </div>
 
-      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-
       {temperature !== null && (
-        <p className="mb-4 text-center">
-          Temperatura u {city}: {temperature}°C
+        <p className="mb-4 text-gray-700">
+          Current temperature in {city}: <span className="font-semibold">{temperature}°C</span>
         </p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {outfits.map((outfit) => (
-          <div
-            key={outfit.id}
-            className="border p-4 rounded shadow hover:shadow-lg transition"
-          >
-            <h2 className="font-semibold text-lg mb-2">{outfit.title}</h2>
-            <p className="text-sm mb-2">{outfit.description}</p>
-            <div className="flex flex-wrap gap-2">
-              {outfit.items.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
+      <div className="space-y-4">
+        {suggestedOutfits.length > 0 ? (
+          suggestedOutfits.map((outfit) => (
+            <div
+              key={outfit.id}
+              className="border p-4 rounded shadow bg-white"
+            >
+              <h3 className="font-semibold text-lg mb-2">{outfit.title}</h3>
+              {outfit.description && <p className="text-gray-600 mb-2">{outfit.description}</p>}
+              {outfit.event_type && (
+                <p className="text-sm text-gray-500 mb-2">Event Type: {outfit.event_type}</p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {outfit.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border p-2 rounded shadow text-sm"
+                  >
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-gray-500">{item.type}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-gray-500">No outfit suggestions yet.</p>
+        )}
       </div>
     </div>
   );

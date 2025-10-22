@@ -157,6 +157,7 @@ const Items = () => {
             <option value="autumn">Autumn</option>
             <option value="spring">Spring</option>
             <option value="summer">Summer</option>
+            <option value="all">All</option>
           </select>
         </div>
         <InputField

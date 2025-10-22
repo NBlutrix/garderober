@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import InputField from '../components/InputField';
-import Button from '../components/Button';
+
 
 const OutfitPlanner = () => {
   const { token } = useAuth();
@@ -68,15 +68,21 @@ const OutfitPlanner = () => {
           onChange={(e) => setCity(e.target.value)}
           placeholder="Enter city"
         />
-        <InputField
-          label="Event Type"
-          value={eventType}
-          onChange={(e) => setEventType(e.target.value)}
-          placeholder="Enter event type (e.g., party, casual)"
-        />
-        <Button onClick={fetchSuggestedOutfits} disabled={loading}>
-          {loading ? 'Fetching...' : 'Get Outfit Suggestions'}
-        </Button>
+        <div className="flex flex-col">
+          <label className="text-gray-700 font-medium mb-1">Event Type</label>
+          <select
+           value={eventType}
+            onChange={(e) => setEventType(e.target.value)}
+            className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select event type</option>
+            <option value="casual">Casual</option>
+            <option value="formal">Formal</option>
+            <option value="party">Party</option>
+            <option value="work">Work</option>
+          </select>
+            </div>
+       {loading && <p className="text-gray-500">Loading outfit suggestions...</p>}
       </div>
 
       {temperature !== null && (

@@ -28,7 +28,7 @@ class ItemController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            'season' => 'required|in:winter,autumn,spring,summer',
+            'season' => 'required|in:winter,autumn,spring,summer,all',
             'color' => 'required|string|max:50',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);

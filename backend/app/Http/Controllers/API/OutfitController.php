@@ -12,7 +12,6 @@ class OutfitController extends Controller
     // Prikazuje sve outfite ulogovanog korisnika
     public function index(Request $request)
     {
-        // Uzmi broj po stranici iz query parametra ili default na 10
         $perPage = $request->query('per_page', 10);
 
         $outfits = Outfit::where('user_id', Auth::id())
@@ -82,36 +81,35 @@ class OutfitController extends Controller
         return response()->json(['message' => 'Outfit deleted successfully'], 200);
     }
 
-    // Predlaže outfite po event_type i temperaturi/sezoni
     public function suggest(Request $request)
-    {
-        $eventType = $request->query('event_type');
-        $temperature = floatval($request->query('temperature', 0));
+{
+    $user = $request->user();
+    $eventType = $request->query('event_type');
+    $temperature = floatval($request->query('temperature'));
 
-        $query = Outfit::with('items')->where('user_id', Auth::id());
+    $query = Outfit::with('items')->where('user_id', $user->id);
 
-        if ($eventType) {
-            $query->whereRaw('LOWER(event_type) = ?', [strtolower($eventType)]);
-        }
-
-        $outfits = $query->get()->filter(function ($outfit) use ($temperature) {
-            // Outfit se predlaže ako bar jedan item odgovara temperaturi/sezoni
-            return $outfit->items->contains(function ($item) use ($temperature) {
-                switch ($item->season) {
-                    case 'winter':
-                        return $temperature < 10; // zima: ispod 10°C
-                    case 'autumn':
-                        return $temperature >= 10 && $temperature < 15; // jesen: 10-15°C
-                    case 'spring':
-                        return $temperature >= 15 && $temperature < 24; // proleće: 15-24°C
-                    case 'summer':
-                        return $temperature >= 24; // leto: 24°C i više
-                    default:
-                        return true;
-                }
-            });
-        });
-
-        return response()->json($outfits->values(), 200);
+    if ($eventType) {
+        $query->where('event_type', $eventType);
     }
+
+    $outfits = $query->get()->filter(function ($outfit) use ($temperature) {
+        // Odredi sezonu na osnovu temperature
+        $season = match (true) {
+            $temperature < 10 => 'winter',
+            $temperature >= 10 && $temperature < 15 => 'autumn',
+            $temperature >= 15 && $temperature < 24 => 'spring',
+            $temperature >= 24 => 'summer',
+            default => 'all',
+        };
+
+        // Outfit je validan samo ako svi itemi imaju season == trenutna sezona ili 'all'
+        return $outfit->items->every(function ($item) use ($season) {
+            return in_array($item->season, [$season, 'all']);
+        });
+    });
+
+    return response()->json($outfits->values(), 200);
+}
+
 }

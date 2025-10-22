@@ -9,6 +9,8 @@ const Outfits = () => {
   const [outfits, setOutfits] = useState([]);
   const [items, setItems] = useState([]);
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [eventType, setEventType] = useState('work'); // default lowercase
   const [selectedItems, setSelectedItems] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,10 @@ const Outfits = () => {
   const [total, setTotal] = useState(0);
   const [perPage] = useState(10);
 
+  const [itemPage, setItemPage] = useState(1);
+  const [itemLastPage, setItemLastPage] = useState(1);
+
+  // FETCH OUTFITS I ITEME
   useEffect(() => {
     if (!token) return;
 
@@ -37,10 +43,15 @@ const Outfits = () => {
       }
     };
 
-    const fetchItems = async () => {
+    const fetchItems = async (page = 1) => {
       try {
-        const res = await api.get('/items', { headers: { Authorization: `Bearer ${token}` } });
-        setItems(Array.isArray(res.data.data) ? res.data.data : res.data);
+        const res = await api.get(`/items?page=${page}&per_page=${perPage}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = Array.isArray(res.data.data) ? res.data.data : res.data.data;
+        setItems(data);
+        setItemPage(res.data.current_page);
+        setItemLastPage(res.data.last_page);
       } catch (err) {
         console.error(err);
         setError('Failed to fetch items.');
@@ -52,6 +63,7 @@ const Outfits = () => {
     fetchOutfits();
   }, [token, perPage]);
 
+  // KREIRANJE OUTFITA
   const handleCreateOutfit = async (e) => {
     e.preventDefault();
     if (!title.trim() || selectedItems.length === 0) {
@@ -59,16 +71,35 @@ const Outfits = () => {
     }
 
     setLoading(true);
+
+    // LOGUJEMO payload da proverimo vrednosti
+    console.log({
+      title,
+      description,
+      event_type: eventType,
+      item_ids: selectedItems,
+    });
+
     try {
       await api.post(
         '/outfits',
-        { title, item_ids: selectedItems },
+        {
+          title,
+          description,
+          event_type: eventType, // uvek lowercase
+          item_ids: selectedItems,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // RESETUJEMO FORMU
       setTitle('');
+      setDescription('');
+      setEventType('work');
       setSelectedItems([]);
       setError('');
-      // Refresh first page after creation
+
+      // osvežavamo prvu stranu outfita
       const res = await api.get(`/outfits?page=1&per_page=${perPage}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -87,7 +118,6 @@ const Outfits = () => {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/outfits/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      // Refresh current page after deletion
       const res = await api.get(`/outfits?page=${currentPage}&per_page=${perPage}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -123,6 +153,22 @@ const Outfits = () => {
     }
   };
 
+  const goToItemPage = async (page) => {
+    if (page < 1 || page > itemLastPage) return;
+    try {
+      const res = await api.get(`/items?page=${page}&per_page=${perPage}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = Array.isArray(res.data.data) ? res.data.data : res.data.data;
+      setItems(data);
+      setItemPage(res.data.current_page);
+      setItemLastPage(res.data.last_page);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch items.');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <h2 className="text-2xl font-semibold mb-6 text-gray-800">Outfits</h2>
@@ -138,21 +184,57 @@ const Outfits = () => {
           placeholder="Enter outfit title"
         />
 
+        {/* Description */}
+        <InputField
+          label="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter outfit description"
+        />
+
+        {/* Event Type */}
+        <p className="text-gray-700 font-semibold">Event Type:</p>
+        <select
+          value={eventType}
+          onChange={(e) => setEventType(e.target.value)}
+          className="border p-2 rounded mb-2 w-full"
+        >
+          <option value="work">Work</option>
+          <option value="casual">Casual</option>
+          <option value="party">Party</option>
+          <option value="formal">Formal</option>
+        </select>
+
         <p className="text-gray-700 font-semibold">Select Items:</p>
-        <div className="grid grid-cols-2 gap-2">
-          {items.map((item) => (
-            <label
-              key={item.id}
-              className="flex items-center space-x-2 bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200"
-            >
-              <input
-                type="checkbox"
-                checked={selectedItems.includes(item.id)}
-                onChange={() => toggleItemSelection(item.id)}
-              />
-              <span>{item.name}</span>
-            </label>
-          ))}
+        <div className="border p-2 rounded">
+          <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+            {items.map((item) => (
+              <label
+                key={item.id}
+                className="flex items-center space-x-2 bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedItems.includes(item.id)}
+                  onChange={() => toggleItemSelection(item.id)}
+                />
+                <span>{item.name}</span>
+              </label>
+            ))}
+          </div>
+
+          {/* Pagination za iteme */}
+          <div className="flex justify-between mt-2">
+            <Button disabled={itemPage === 1} onClick={() => goToItemPage(itemPage - 1)}>
+              Previous
+            </Button>
+            <span className="text-gray-700">
+              Page {itemPage} of {itemLastPage}
+            </span>
+            <Button disabled={itemPage === itemLastPage} onClick={() => goToItemPage(itemPage + 1)}>
+              Next
+            </Button>
+          </div>
         </div>
 
         <Button type="submit" fullWidth disabled={loading}>
@@ -170,6 +252,9 @@ const Outfits = () => {
             >
               <div>
                 <p className="font-semibold">{outfit.title}</p>
+                <p className="text-gray-500">
+                  Event: {outfit.event_type} | {outfit.description}
+                </p>
                 <p className="text-gray-500">{outfit.items?.map((i) => i.name).join(', ')}</p>
               </div>
               <Button onClick={() => handleDelete(outfit.id)} className="bg-red-500 hover:bg-red-600">
@@ -182,7 +267,7 @@ const Outfits = () => {
         )}
       </ul>
 
-      {/* PAGINATION */}
+      {/* PAGINATION za outfite */}
       {outfits.length > 0 && (
         <div className="flex justify-between items-center mt-6">
           <Button disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>

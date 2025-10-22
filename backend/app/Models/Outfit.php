@@ -13,6 +13,7 @@ class Outfit extends Model
         'user_id',
         'title',
         'description',
+        'event_type',
     ];
 
     public function user()

@@ -15,15 +15,15 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-// 👤 Ruta za dobijanje podataka o prijavljenom korisniku
+//  Ruta za dobijanje podataka o prijavljenom korisniku
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// 🔒 Zaštićene CRUD rute i specijalne rute za outfite i iteme
+//  Zaštićene CRUD rute i specijalne rute za outfite i iteme
 Route::middleware(['auth:sanctum', 'role:admin,user'])->group(function () {
 
-    // ⚡ Specijalna ruta za predlog outfita
+    //  Specijalna ruta za predlog outfita
     // VAŽNO: mora biti pre apiResource, da je Laravel ne prepozna kao {outfit} parametar
     Route::get('outfits/suggest', [OutfitController::class, 'suggest']);
 
@@ -33,7 +33,5 @@ Route::middleware(['auth:sanctum', 'role:admin,user'])->group(function () {
     // Resource rute za Item
     Route::apiResource('items', ItemController::class);
 
-    // Primer dodatnih ruta za paginaciju/pretragu/filter (opciono)
-    // Route::get('items/search', [ItemController::class, 'search']);
-    // Route::get('outfits/filter', [OutfitController::class, 'filter']);
+  
 });
